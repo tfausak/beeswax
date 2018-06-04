@@ -1,0 +1,61 @@
+name: beeswax
+version: 0.0.0
+
+category: TODO
+description: TODO TODO
+extra-source-files:
+  - data/*.json # https://github.com/mongodb/specifications/blob/6f1aabdc990cc65ef4bedc6458e470209453d74a/source/bson-corpus/bson-corpus.rst
+license-file: LICENSE.markdown
+license: MIT
+maintainer: Taylor Fausak
+synopsis: TODO
+
+dependencies:
+  base: '>= 4.11.1 && < 4.12'
+  bytestring: '>= 0.10.8 && < 0.11'
+  text: '>= 1.2.3 && < 1.3'
+ghc-options:
+  - -Weverything
+  - -Wno-implicit-prelude
+  - -Wno-safe
+  - -Wno-unsafe
+
+library:
+  source-dirs: library
+
+executable:
+  dependencies:
+    beeswax: null
+  ghc-options:
+    - -rtsopts
+    - -threaded
+  main: Main.hs
+  source-dirs: executables
+
+tests:
+  test:
+    dependencies:
+      aeson: '>= 1.3.1 && < 1.4'
+      beeswax: null
+      directory: '>= 1.3.1 && < 1.4'
+      filepath: '>= 1.4.2 && < 1.5'
+      HUnit: '>= 1.6.0 && < 1.7'
+    ghc-options:
+      - -rtsopts
+      - -threaded
+    main: Main.hs
+    source-dirs: tests
+
+benchmarks:
+  benchmark:
+    dependencies:
+      binary: '>= 0.8.5 && < 0.9'
+      beeswax: null
+      bson: '>= 0.3.2 && < 0.4'
+      criterion: '>= 1.4.1 && < 1.5'
+      time: '>= 1.8.0 && < 1.9'
+    ghc-options:
+      - -rtsopts
+      - -threaded
+    main: Main.hs
+    source-dirs: benchmarks
