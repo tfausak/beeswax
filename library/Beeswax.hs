@@ -17,6 +17,7 @@ module Beeswax
   , Quad(..)
   , Code(..)
   , Uuid(..)
+  , Md5(..)
   )
 where
 
@@ -132,27 +133,27 @@ putPairs pairs = mappend
   (Builder.word8 0x00)
 
 data Tag
-  = T01 -- double
-  | T02 -- string
-  | T03 -- object
-  | T04 -- array
-  | T05 -- bindata
-  | T06 -- undefined
-  | T07 -- objectid
-  | T08 -- bool
-  | T09 -- date
-  | T0A -- null
-  | T0B -- regex
-  | T0C -- dbpointer
-  | T0D -- javascript
-  | T0E -- symbol
-  | T0F -- javascriptwithscope
-  | T10 -- int
-  | T11 -- timestamp
-  | T12 -- long
-  | T13 -- decimal
-  | T7F -- maxkey
-  | TFF -- minkey
+  = T01 -- double
+  | T02 -- string
+  | T03 -- object
+  | T04 -- array
+  | T05 -- bindata
+  | T06 -- undefined
+  | T07 -- objectid
+  | T08 -- bool
+  | T09 -- date
+  | T0A -- null
+  | T0B -- regex
+  | T0C -- dbpointer
+  | T0D -- javascript
+  | T0E -- symbol
+  | T0F -- javascriptwithscope
+  | T10 -- int
+  | T11 -- timestamp
+  | T12 -- long
+  | T13 -- decimal
+  | T7F -- maxkey
+  | TFF -- minkey
   deriving (Eq, Show)
 
 getMaybeTag :: Get (Maybe Tag)
@@ -458,7 +459,7 @@ putCode = putSized
   (\x -> mappend (putString (codeSource x)) (putObject (codeScope x)))
 
 newtype Quad = Quad
-  { unwrapQuad :: Bytes.ByteString -- TODO: Use better representation.
+  { unwrapQuad :: Bytes.ByteString -- TODO: Use better representation.
   } deriving (Eq, Show)
 
 getQuad :: Get Quad
@@ -517,7 +518,7 @@ putArray array = putObject
     )
   )
 
--- TODO: Is this right, or does it need to be big-endian?
+-- TODO: Is this right, or does it need to be big-endian?
 data ObjectId = ObjectId
   { objectIdA :: Word.Word32
   , objectIdB :: Word.Word64
