@@ -1,14 +1,17 @@
 name: beeswax
 version: 0.0.0
 
-category: TODO
-description: TODO TODO
+category: Data
+description: Beeswax encodes and decodes BSON.
 extra-source-files:
   - data/*.json # https://github.com/mongodb/specifications/blob/6f1aabdc990cc65ef4bedc6458e470209453d74a/source/bson-corpus/bson-corpus.rst
+  - package.yaml
+  - README.markdown
+  - stack.yaml
 license-file: LICENSE.markdown
 license: MIT
 maintainer: Taylor Fausak
-synopsis: TODO
+synopsis: Encode and decode BSON.
 
 dependencies:
   base: '>= 4.11.1 && < 4.12'
