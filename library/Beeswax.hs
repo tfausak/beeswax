@@ -59,52 +59,58 @@ version = This.version
 decodeObject :: Bytes.ByteString -> Either String Object
 decodeObject x = fst (runGet (getSized (Bytes.length x) getObject) x)
 
-newtype Parser a = Parser
-  { runParser :: Bytes.ByteString -> (Either String a, Bytes.ByteString)
+newtype Get a = Get
+  { runGet :: Bytes.ByteString -> (Either String a, Bytes.ByteString)
   }
 
-instance Functor Parser where
-  fmap f p =
-    Parser
-      (\b ->
-         case runParser p b of
-           (Left l, c) -> (Left l, c)
-           (Right r, c) -> (Right (f r), c))
+instance Functor Get where
+  fmap = fmapGet
 
-instance Applicative Parser where
-  pure x = Parser (\b -> (Right x, b))
-  pf <*> px =
-    Parser
-      (\b ->
-         case runParser pf b of
-           (Left l, c) -> (Left l, c)
-           (Right f, c) ->
-             case runParser px c of
-               (Left l, d) -> (Left l, d)
-               (Right x, d) -> (Right (f x), d))
+fmapGet :: (a -> b) -> Get a -> Get b
+fmapGet f p = Get
+  (\b -> case runGet p b of
+    (Left l, c) -> (Left l, c)
+    (Right r, c) -> (Right (f r), c)
+  )
 
-instance Monad Parser where
-  p >>= f =
-    Parser
-      (\b ->
-         case runParser p b of
-           (Left l, c) -> (Left l, c)
-           (Right x, c) -> runParser (f x) c)
+instance Applicative Get where
+  pure = pureGet
+  (<*>) = apGet
+
+pureGet :: a -> Get a
+pureGet x = Get (\b -> (Right x, b))
+
+apGet :: Get (a -> b) -> Get a -> Get b
+apGet pf px = Get
+  (\b -> case runGet pf b of
+    (Left l, c) -> (Left l, c)
+    (Right f, c) -> case runGet px c of
+      (Left l, d) -> (Left l, d)
+      (Right x, d) -> (Right (f x), d)
+  )
+
+instance Monad Get where
+  (>>=) = bindGet
   fail = Fail.fail
 
-instance Fail.MonadFail Parser where
-  fail l = Parser (\b -> (Left l, b))
+bindGet :: Get a -> (a -> Get b) -> Get b
+bindGet p f = Get
+  (\b -> case runGet p b of
+    (Left l, c) -> (Left l, c)
+    (Right x, c) -> runGet (f x) c
+  )
 
-get :: Parser Bytes.ByteString
-get = Parser (\b -> (Right b, b))
+instance Fail.MonadFail Get where
+  fail = failGet
 
-put :: Bytes.ByteString -> Parser ()
-put b = Parser (const (Right (), b))
+failGet :: String -> Get a
+failGet l = Get (\b -> (Left l, b))
 
-type Get = Parser
+get :: Get Bytes.ByteString
+get = Get (\b -> (Right b, b))
 
-runGet :: Get a -> Bytes.ByteString -> (Either String a, Bytes.ByteString)
-runGet = runParser
+put :: Bytes.ByteString -> Get ()
+put b = Get (const (Right (), b))
 
 encodeObject :: Object -> Bytes.ByteString
 encodeObject = runPut putObject
