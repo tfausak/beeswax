@@ -46,6 +46,13 @@ defaultMain = do
     Left problem -> fail problem
     Right object -> Bytes.writeFile output (encodeObject object)
 
+-- | The version number for this package.
+--
+-- >>> Version.Version branch tags = version
+-- >>> null branch
+-- False
+-- >>> null tags
+-- True
 version :: Version.Version
 version = This.version
 
@@ -57,22 +64,32 @@ newtype Parser a = Parser
   }
 
 instance Functor Parser where
-  fmap f p = Parser (\b -> case runParser p b of
-    (Left l, c) -> (Left l, c)
-    (Right r, c) -> (Right (f r), c))
+  fmap f p =
+    Parser
+      (\b ->
+         case runParser p b of
+           (Left l, c) -> (Left l, c)
+           (Right r, c) -> (Right (f r), c))
 
 instance Applicative Parser where
   pure x = Parser (\b -> (Right x, b))
-  pf <*> px = Parser (\b -> case runParser pf b of
-    (Left l, c) -> (Left l, c)
-    (Right f, c) -> case runParser px c of
-      (Left l, d) -> (Left l, d)
-      (Right x, d) -> (Right (f x), d))
+  pf <*> px =
+    Parser
+      (\b ->
+         case runParser pf b of
+           (Left l, c) -> (Left l, c)
+           (Right f, c) ->
+             case runParser px c of
+               (Left l, d) -> (Left l, d)
+               (Right x, d) -> (Right (f x), d))
 
 instance Monad Parser where
-  p >>= f = Parser (\b -> case runParser p b of
-    (Left l, c) -> (Left l, c)
-    (Right x, c) -> runParser (f x) c)
+  p >>= f =
+    Parser
+      (\b ->
+         case runParser p b of
+           (Left l, c) -> (Left l, c)
+           (Right x, c) -> runParser (f x) c)
   fail = Fail.fail
 
 instance Fail.MonadFail Parser where
@@ -133,27 +150,27 @@ putPairs pairs = mappend
   (Builder.word8 0x00)
 
 data Tag
-  = T01 -- double
-  | T02 -- string
-  | T03 -- object
-  | T04 -- array
-  | T05 -- bindata
-  | T06 -- undefined
-  | T07 -- objectid
-  | T08 -- bool
-  | T09 -- date
-  | T0A -- null
-  | T0B -- regex
-  | T0C -- dbpointer
-  | T0D -- javascript
-  | T0E -- symbol
-  | T0F -- javascriptwithscope
-  | T10 -- int
-  | T11 -- timestamp
-  | T12 -- long
-  | T13 -- decimal
-  | T7F -- maxkey
-  | TFF -- minkey
+  = T01 -- double
+  | T02 -- string
+  | T03 -- object
+  | T04 -- array
+  | T05 -- bindata
+  | T06 -- undefined
+  | T07 -- objectid
+  | T08 -- bool
+  | T09 -- date
+  | T0A -- null
+  | T0B -- regex
+  | T0C -- dbpointer
+  | T0D -- javascript
+  | T0E -- symbol
+  | T0F -- javascriptwithscope
+  | T10 -- int
+  | T11 -- timestamp
+  | T12 -- long
+  | T13 -- decimal
+  | T7F -- maxkey
+  | TFF -- minkey
   deriving (Eq, Show)
 
 getMaybeTag :: Get (Maybe Tag)
@@ -459,7 +476,7 @@ putCode = putSized
   (\x -> mappend (putString (codeSource x)) (putObject (codeScope x)))
 
 newtype Quad = Quad
-  { unwrapQuad :: Bytes.ByteString -- TODO: Use better representation.
+  { unwrapQuad :: Bytes.ByteString -- TODO: Use better representation.
   } deriving (Eq, Show)
 
 getQuad :: Get Quad
@@ -518,7 +535,7 @@ putArray array = putObject
     )
   )
 
--- TODO: Is this right, or does it need to be big-endian?
+-- TODO: Is this right, or does it need to be big-endian?
 data ObjectId = ObjectId
   { objectIdA :: Word.Word32
   , objectIdB :: Word.Word64
@@ -542,7 +559,8 @@ data Binary
   | BinaryUuidOld Uuid
   | BinaryUuid Uuid
   | BinaryMd5 Md5
-  | BinaryUserDefined Word.Word8 Bytes.ByteString
+  | BinaryUserDefined Word.Word8
+                      Bytes.ByteString
   deriving (Eq, Show)
 
 getBinary :: Get Binary
