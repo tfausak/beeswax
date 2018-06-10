@@ -21,7 +21,6 @@ module Beeswax
   , Code(..)
   , Uuid(..)
   , Md5(..)
-  , unwrapMd5
   )
 where
 
@@ -486,18 +485,15 @@ putCode = putSized
   (\x -> mappend (putString (codeSource x)) (putObject (codeScope x)))
 
 data Quad = Quad
-  { quadA :: Word.Word64
-  , quadB :: Word.Word64
+  { quadHigh :: Word.Word64
+  , quadLow :: Word.Word64
   } deriving (Eq, Show)
 
 getQuad :: Get Quad
-getQuad = do
-  a <- getWord64
-  b <- getWord64
-  pure (Quad a b)
+getQuad = Quad <$> getWord64 <*> getWord64
 
 putQuad :: Put Quad
-putQuad quad = mappend (putWord64 (quadA quad)) (putWord64 (quadB quad))
+putQuad quad = mappend (putWord64 (quadHigh quad)) (putWord64 (quadLow quad))
 
 data DbPointer = DbPointer
   { dbPointerRef :: Text.Text
@@ -553,19 +549,17 @@ putArray array = putObject
   )
 
 data ObjectId = ObjectId
-  { objectIdA :: Word.Word32
-  , objectIdB :: Word.Word64
+  { objectIdTime :: Word.Word32
+  , objectIdValue :: Word.Word64
   } deriving (Eq, Show)
 
 getObjectId :: Get ObjectId
-getObjectId = do
-  a <- getWord32BE
-  b <- getWord64BE
-  pure (ObjectId a b)
+getObjectId = ObjectId <$> getWord32BE <*> getWord64BE
 
 putObjectId :: Put ObjectId
-putObjectId objectId =
-  mappend (putWord32BE (objectIdA objectId)) (putWord64BE (objectIdB objectId))
+putObjectId objectId = mappend
+  (putWord32BE (objectIdTime objectId))
+  (putWord64BE (objectIdValue objectId))
 
 data Binary
   = BinaryGeneric Bytes.ByteString
@@ -617,40 +611,26 @@ putBinary = putSized
   )
 
 data Uuid = Uuid
-  { uuidA :: Word.Word32
-  , uuidB :: Word.Word32
-  , uuidC :: Word.Word32
-  , uuidD :: Word.Word32
+  { uuidHigh :: Word.Word64
+  , uuidLow :: Word.Word64
   } deriving (Eq, Show)
 
 getUuid :: Get Uuid
-getUuid = do
-  a <- getWord32
-  b <- getWord32
-  c <- getWord32
-  d <- getWord32
-  pure (Uuid a b c d)
+getUuid = Uuid <$> getWord64 <*> getWord64
 
 putUuid :: Put Uuid
-putUuid uuid = mconcat
-  [ putWord32 (uuidA uuid)
-  , putWord32 (uuidB uuid)
-  , putWord32 (uuidC uuid)
-  , putWord32 (uuidD uuid)
-  ]
+putUuid uuid = mappend (putWord64 (uuidHigh uuid)) (putWord64 (uuidLow uuid))
 
-newtype Md5 =
-  Md5 Bytes.ByteString
-  deriving (Eq, Show)
-
-unwrapMd5 :: Md5 -> Bytes.ByteString
-unwrapMd5 (Md5 x) = x
+data Md5 = Md5
+  { md5High :: Word.Word64
+  , md5Low :: Word.Word64
+  } deriving (Eq, Show)
 
 getMd5 :: Get Md5
-getMd5 = fmap Md5 (getBytes 16)
+getMd5 = Md5 <$> getWord64 <*> getWord64
 
 putMd5 :: Put Md5
-putMd5 md5 = putBytes (unwrapMd5 md5)
+putMd5 md5 = mappend (putWord64 (md5High md5)) (putWord64 (md5Low md5))
 
 getSized :: Int -> Get a -> Get a
 getSized size f = do
@@ -737,9 +717,6 @@ putWord64 = Builder.word64LE
 
 getWord32 :: Get Word.Word32
 getWord32 = fmap bytesToWord32 (getBytes 4)
-
-putWord32 :: Put Word.Word32
-putWord32 = Builder.word32LE
 
 getWord8 :: Get Word.Word8
 getWord8 = fmap bytesToWord8 (getBytes 1)
