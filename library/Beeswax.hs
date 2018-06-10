@@ -154,7 +154,7 @@ putPairs pairs = mappend
     (\pair -> mappend (putTag (valueToTag (pairValue pair))) (putPair pair))
     (unwrapPairs pairs)
   )
-  (Builder.word8 0x00)
+  (putWord8 0x00)
 
 data Tag
   = TagDouble
@@ -209,7 +209,7 @@ getMaybeTag = do
     _ -> fail (mappend "invalid tag: " (show tag))
 
 putTag :: Put Tag
-putTag tag = Builder.word8
+putTag tag = putWord8
   (case tag of
     TagDouble -> 0x01
     TagString -> 0x02
@@ -334,10 +334,10 @@ putValue value = case value of
   ValueMinKey -> putValueMinKey ()
 
 getValueDouble :: Get Value
-getValueDouble = fmap (ValueDouble . word64ToDouble) getWord64
+getValueDouble = fmap ValueDouble getDouble
 
 putValueDouble :: Put Double
-putValueDouble = Builder.doubleLE
+putValueDouble = putDouble
 
 getValueString :: Get Value
 getValueString = fmap ValueString getString
@@ -384,13 +384,13 @@ getValueBool = do
     _ -> fail (mappend "invalid bool: " (show byte))
 
 putValueBool :: Put Bool
-putValueBool x = Builder.word8 (if x then 0x01 else 0x00)
+putValueBool x = putWord8 (if x then 0x01 else 0x00)
 
 getValueDate :: Get Value
 getValueDate = fmap ValueDate getInt64
 
 putValueDate :: Put Int.Int64
-putValueDate = Builder.int64LE
+putValueDate = putInt64
 
 getValueNull :: Get Value
 getValueNull = pure ValueNull
@@ -432,19 +432,19 @@ getValueInt :: Get Value
 getValueInt = fmap ValueInt getInt32
 
 putValueInt :: Put Int.Int32
-putValueInt = Builder.int32LE
+putValueInt = putInt32
 
 getValueTimestamp :: Get Value
 getValueTimestamp = fmap ValueTimestamp getWord64
 
 putValueTimestamp :: Put Word.Word64
-putValueTimestamp = Builder.word64LE
+putValueTimestamp = putWord64
 
 getValueLong :: Get Value
 getValueLong = fmap ValueLong getInt64
 
 putValueLong :: Put Int.Int64
-putValueLong = Builder.int64LE
+putValueLong = putInt64
 
 getValueDecimal :: Get Value
 getValueDecimal = fmap ValueDecimal getQuad
@@ -497,8 +497,7 @@ getQuad = do
   pure (Quad a b)
 
 putQuad :: Put Quad
-putQuad quad =
-  mappend (Builder.word64LE (quadA quad)) (Builder.word64LE (quadB quad))
+putQuad quad = mappend (putWord64 (quadA quad)) (putWord64 (quadB quad))
 
 data DbPointer = DbPointer
   { dbPointerRef :: Text.Text
@@ -565,9 +564,8 @@ getObjectId = do
   pure (ObjectId a b)
 
 putObjectId :: Put ObjectId
-putObjectId objectId = mappend
-  (Builder.word32BE (objectIdA objectId))
-  (Builder.word64BE (objectIdB objectId))
+putObjectId objectId =
+  mappend (putWord32BE (objectIdA objectId)) (putWord64BE (objectIdB objectId))
 
 data Binary
   = BinaryGeneric Bytes.ByteString
@@ -607,17 +605,15 @@ putBinary :: Put Binary
 putBinary = putSized
   (subtract 1)
   (\binary -> case binary of
-    BinaryGeneric bytes ->
-      mappend (Builder.word8 0x00) (Builder.byteString bytes)
-    BinaryFunction bytes ->
-      mappend (Builder.word8 0x01) (Builder.byteString bytes)
+    BinaryGeneric bytes -> mappend (putWord8 0x00) (putBytes bytes)
+    BinaryFunction bytes -> mappend (putWord8 0x01) (putBytes bytes)
     BinaryGenericOld bytes ->
-      mappend (Builder.word8 0x02) (putSized id Builder.byteString bytes)
-    BinaryUuidOld uuid -> mappend (Builder.word8 0x03) (putUuid uuid)
-    BinaryUuid uuid -> mappend (Builder.word8 0x04) (putUuid uuid)
-    BinaryMd5 md5 -> mappend (Builder.word8 0x05) (putMd5 md5)
+      mappend (putWord8 0x02) (putSized id putBytes bytes)
+    BinaryUuidOld uuid -> mappend (putWord8 0x03) (putUuid uuid)
+    BinaryUuid uuid -> mappend (putWord8 0x04) (putUuid uuid)
+    BinaryMd5 md5 -> mappend (putWord8 0x05) (putMd5 md5)
     BinaryUserDefined subtype bytes ->
-      mappend (Builder.word8 subtype) (Builder.byteString bytes)
+      mappend (putWord8 subtype) (putBytes bytes)
   )
 
 data Uuid = Uuid
@@ -637,10 +633,10 @@ getUuid = do
 
 putUuid :: Put Uuid
 putUuid uuid = mconcat
-  [ Builder.word32LE (uuidA uuid)
-  , Builder.word32LE (uuidB uuid)
-  , Builder.word32LE (uuidC uuid)
-  , Builder.word32LE (uuidD uuid)
+  [ putWord32 (uuidA uuid)
+  , putWord32 (uuidB uuid)
+  , putWord32 (uuidC uuid)
+  , putWord32 (uuidD uuid)
   ]
 
 newtype Md5 =
@@ -654,7 +650,7 @@ getMd5 :: Get Md5
 getMd5 = fmap Md5 (getBytes 16)
 
 putMd5 :: Put Md5
-putMd5 md5 = Builder.byteString (unwrapMd5 md5)
+putMd5 md5 = putBytes (unwrapMd5 md5)
 
 getSized :: Int -> Get a -> Get a
 getSized size f = do
@@ -671,8 +667,8 @@ putSized modifySize f x =
   let bytes = runPut f x
   in
     mappend
-      (Builder.int32LE (modifySize (intToInt32 (Bytes.length bytes))))
-      (Builder.byteString bytes)
+      (putInt32 (modifySize (intToInt32 (Bytes.length bytes))))
+      (putBytes bytes)
 
 getCString :: Get Text.Text
 getCString = do
@@ -681,8 +677,7 @@ getCString = do
   decodeUtf8 bytes
 
 putCString :: Put Text.Text
-putCString text =
-  mappend (Builder.stringUtf8 (Text.unpack text)) (Builder.word8 0x00)
+putCString text = mappend (putBytes (Text.encodeUtf8 text)) (putWord8 0x00)
 
 decodeUtf8 :: Bytes.ByteString -> Get Text.Text
 decodeUtf8 bytes = case Text.decodeUtf8' bytes of
@@ -701,26 +696,53 @@ getString = do
 putString :: Put Text.Text
 putString = putSized id putCString
 
+getDouble :: Get Double
+getDouble = fmap word64ToDouble getWord64
+
+putDouble :: Put Double
+putDouble = Builder.doubleLE
+
 getInt64 :: Get Int.Int64
 getInt64 = fmap word64ToInt64 getWord64
+
+putInt64 :: Put Int.Int64
+putInt64 = Builder.int64LE
 
 getInt32 :: Get Int.Int32
 getInt32 = fmap word32ToInt32 getWord32
 
+putInt32 :: Put Int.Int32
+putInt32 = Builder.int32LE
+
 getWord64BE :: Get Word.Word64
 getWord64BE = fmap bytesToWord64BE (getBytes 8)
+
+putWord64BE :: Put Word.Word64
+putWord64BE = Builder.word64BE
 
 getWord32BE :: Get Word.Word32
 getWord32BE = fmap bytesToWord32BE (getBytes 4)
 
+putWord32BE :: Put Word.Word32
+putWord32BE = Builder.word32BE
+
 getWord64 :: Get Word.Word64
 getWord64 = fmap bytesToWord64 (getBytes 8)
+
+putWord64 :: Put Word.Word64
+putWord64 = Builder.word64LE
 
 getWord32 :: Get Word.Word32
 getWord32 = fmap bytesToWord32 (getBytes 4)
 
+putWord32 :: Put Word.Word32
+putWord32 = Builder.word32LE
+
 getWord8 :: Get Word.Word8
 getWord8 = fmap bytesToWord8 (getBytes 1)
+
+putWord8 :: Put Word.Word8
+putWord8 = Builder.word8
 
 getUntil :: (Word.Word8 -> Bool) -> Get Bytes.ByteString
 getUntil predicate = do
@@ -738,6 +760,9 @@ getBytes size = do
     (fail (mappend "size too large: " (show size)))
   put (Bytes.drop size bytes)
   pure (Bytes.take size bytes)
+
+putBytes :: Put Bytes.ByteString
+putBytes = Builder.byteString
 
 bytesToWord64BE :: Bytes.ByteString -> Word.Word64
 bytesToWord64BE bytes =
