@@ -18,7 +18,6 @@ module Beeswax
   , Regex(..)
   , DbPointer(..)
   , Quad(..)
-  , unwrapQuad
   , Code(..)
   , Uuid(..)
   , Md5(..)
@@ -486,19 +485,20 @@ putCode = putSized
   (+ 4)
   (\x -> mappend (putString (codeSource x)) (putObject (codeScope x)))
 
--- TODO: Use better representation.
-newtype Quad =
-  Quad Bytes.ByteString
-  deriving (Eq, Show)
-
-unwrapQuad :: Quad -> Bytes.ByteString
-unwrapQuad (Quad x) = x
+data Quad = Quad
+  { quadA :: Word.Word64
+  , quadB :: Word.Word64
+  } deriving (Eq, Show)
 
 getQuad :: Get Quad
-getQuad = fmap Quad (getBytes 16)
+getQuad = do
+  a <- getWord64
+  b <- getWord64
+  pure (Quad a b)
 
 putQuad :: Put Quad
-putQuad quad = Builder.byteString (unwrapQuad quad)
+putQuad quad =
+  mappend (Builder.word64LE (quadA quad)) (Builder.word64LE (quadB quad))
 
 data DbPointer = DbPointer
   { dbPointerRef :: Text.Text
