@@ -124,8 +124,8 @@ unwrapObject (Object x) = x
 
 getObject :: Get Object
 getObject = do
-  size <- getInt32
-  pairs <- getSized (int32ToInt size - 4) getPairs
+  size <- getInt32AsInt
+  pairs <- getSized (size - 4) getPairs
   pure (Object pairs)
 
 putObject :: Put Object
@@ -471,9 +471,9 @@ data Code = Code
 
 getCode :: Get Code
 getCode = do
-  size <- getInt32
+  size <- getInt32AsInt
   getSized
-    (int32ToInt size - 4)
+    (size - 4)
     (do
       x <- getString
       y <- getObject
@@ -580,25 +580,25 @@ data Binary
 
 getBinary :: Get Binary
 getBinary = do
-  size <- getInt32
+  size <- getInt32AsInt
   subtype <- getWord8
   case subtype of
-    0x00 -> fmap BinaryGeneric (getBytes (int32ToInt size))
-    0x01 -> fmap BinaryFunction (getBytes (int32ToInt size))
+    0x00 -> fmap BinaryGeneric (getBytes size)
+    0x01 -> fmap BinaryFunction (getBytes size)
     0x02 -> fmap
       BinaryGenericOld
       (getSized
-        (int32ToInt size)
+        size
         (do
-          innerSize <- getInt32
-          getBytes (int32ToInt innerSize)
+          innerSize <- getInt32AsInt
+          getBytes innerSize
         )
       )
-    0x03 -> fmap BinaryUuidOld (getSized (int32ToInt size) getUuid)
-    0x04 -> fmap BinaryUuid (getSized (int32ToInt size) getUuid)
-    0x05 -> fmap BinaryMd5 (getSized (int32ToInt size) getMd5)
+    0x03 -> fmap BinaryUuidOld (getSized size getUuid)
+    0x04 -> fmap BinaryUuid (getSized size getUuid)
+    0x05 -> fmap BinaryMd5 (getSized size getMd5)
     _ -> if subtype >= 0x80
-      then fmap (BinaryUserDefined subtype) (getBytes (int32ToInt size))
+      then fmap (BinaryUserDefined subtype) (getBytes size)
       else fail (mappend "invalid subtype: " (show subtype))
 
 putBinary :: Put Binary
@@ -686,8 +686,8 @@ decodeUtf8 bytes = case Text.decodeUtf8' bytes of
 
 getString :: Get Text.Text
 getString = do
-  size <- getInt32
-  bytes <- getBytes (int32ToInt size - 1)
+  size <- getInt32AsInt
+  bytes <- getBytes (size - 1)
   terminator <- getWord8
   if terminator == 0x00
     then decodeUtf8 bytes
@@ -707,6 +707,9 @@ getInt64 = fmap word64ToInt64 getWord64
 
 putInt64 :: Put Int.Int64
 putInt64 = Builder.int64LE
+
+getInt32AsInt :: Get Int
+getInt32AsInt = fmap int32ToInt getInt32
 
 getInt32 :: Get Int.Int32
 getInt32 = fmap word32ToInt32 getWord32
