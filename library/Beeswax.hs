@@ -170,27 +170,27 @@ putPairs pairs = mappend
   (Builder.word8 0x00)
 
 data Tag
-  = T01 -- double
-  | T02 -- string
-  | T03 -- object
-  | T04 -- array
-  | T05 -- bindata
-  | T06 -- undefined
-  | T07 -- objectid
-  | T08 -- bool
-  | T09 -- date
-  | T0A -- null
-  | T0B -- regex
-  | T0C -- dbpointer
-  | T0D -- javascript
-  | T0E -- symbol
-  | T0F -- javascriptwithscope
-  | T10 -- int
-  | T11 -- timestamp
-  | T12 -- long
-  | T13 -- decimal
-  | T7F -- maxkey
-  | TFF -- minkey
+  = TagDouble
+  | TagString
+  | TagObject
+  | TagArray
+  | TagBinData
+  | TagUndefined
+  | TagObjectId
+  | TagBool
+  | TagDate
+  | TagNull
+  | TagRegex
+  | TagDbPointer
+  | TagJavaScript
+  | TagSymbol
+  | TagJavaScriptWithScope
+  | TagInt
+  | TagTimestamp
+  | TagLong
+  | TagDecimal
+  | TagMaxKey
+  | TagMinKey
   deriving (Eq, Show)
 
 getMaybeTag :: Get (Maybe Tag)
@@ -198,53 +198,53 @@ getMaybeTag = do
   tag <- getWord8
   case tag of
     0x00 -> pure Nothing
-    0x01 -> pure (Just T01)
-    0x02 -> pure (Just T02)
-    0x03 -> pure (Just T03)
-    0x04 -> pure (Just T04)
-    0x05 -> pure (Just T05)
-    0x06 -> pure (Just T06)
-    0x07 -> pure (Just T07)
-    0x08 -> pure (Just T08)
-    0x09 -> pure (Just T09)
-    0x0A -> pure (Just T0A)
-    0x0B -> pure (Just T0B)
-    0x0C -> pure (Just T0C)
-    0x0D -> pure (Just T0D)
-    0x0E -> pure (Just T0E)
-    0x0F -> pure (Just T0F)
-    0x10 -> pure (Just T10)
-    0x11 -> pure (Just T11)
-    0x12 -> pure (Just T12)
-    0x13 -> pure (Just T13)
-    0x7F -> pure (Just T7F)
-    0xFF -> pure (Just TFF)
+    0x01 -> pure (Just TagDouble)
+    0x02 -> pure (Just TagString)
+    0x03 -> pure (Just TagObject)
+    0x04 -> pure (Just TagArray)
+    0x05 -> pure (Just TagBinData)
+    0x06 -> pure (Just TagUndefined)
+    0x07 -> pure (Just TagObjectId)
+    0x08 -> pure (Just TagBool)
+    0x09 -> pure (Just TagDate)
+    0x0A -> pure (Just TagNull)
+    0x0B -> pure (Just TagRegex)
+    0x0C -> pure (Just TagDbPointer)
+    0x0D -> pure (Just TagJavaScript)
+    0x0E -> pure (Just TagSymbol)
+    0x0F -> pure (Just TagJavaScriptWithScope)
+    0x10 -> pure (Just TagInt)
+    0x11 -> pure (Just TagTimestamp)
+    0x12 -> pure (Just TagLong)
+    0x13 -> pure (Just TagDecimal)
+    0x7F -> pure (Just TagMaxKey)
+    0xFF -> pure (Just TagMinKey)
     _ -> fail (mappend "invalid tag: " (show tag))
 
 putTag :: Put Tag
 putTag tag = Builder.word8
   (case tag of
-    T01 -> 0x01
-    T02 -> 0x02
-    T03 -> 0x03
-    T04 -> 0x04
-    T05 -> 0x05
-    T06 -> 0x06
-    T07 -> 0x07
-    T08 -> 0x08
-    T09 -> 0x09
-    T0A -> 0x0A
-    T0B -> 0x0B
-    T0C -> 0x0C
-    T0D -> 0x0D
-    T0E -> 0x0E
-    T0F -> 0x0F
-    T10 -> 0x10
-    T11 -> 0x11
-    T12 -> 0x12
-    T13 -> 0x13
-    T7F -> 0x7F
-    TFF -> 0xFF
+    TagDouble -> 0x01
+    TagString -> 0x02
+    TagObject -> 0x03
+    TagArray -> 0x04
+    TagBinData -> 0x05
+    TagUndefined -> 0x06
+    TagObjectId -> 0x07
+    TagBool -> 0x08
+    TagDate -> 0x09
+    TagNull -> 0x0A
+    TagRegex -> 0x0B
+    TagDbPointer -> 0x0C
+    TagJavaScript -> 0x0D
+    TagSymbol -> 0x0E
+    TagJavaScriptWithScope -> 0x0F
+    TagInt -> 0x10
+    TagTimestamp -> 0x11
+    TagLong -> 0x12
+    TagDecimal -> 0x13
+    TagMaxKey -> 0x7F
+    TagMinKey -> 0xFF
   )
 
 data Pair = Pair
@@ -300,27 +300,27 @@ data Value
 
 getValue :: Tag -> Get Value
 getValue tag = case tag of
-  T01 -> getValueDouble
-  T02 -> getValueString
-  T03 -> getValueObject
-  T04 -> getValueArray
-  T05 -> getValueBinData
-  T06 -> getValueUndefined
-  T07 -> getValueObjectId
-  T08 -> getValueBool
-  T09 -> getValueDate
-  T0A -> getValueNull
-  T0B -> getValueRegex
-  T0C -> getValueDbPointer
-  T0D -> getValueJavaScript
-  T0E -> getValueSymbol
-  T0F -> getValueJavaScriptWithScope
-  T10 -> getValueInt
-  T11 -> getValueTimestamp
-  T12 -> getValueLong
-  T13 -> getValueDecimal
-  T7F -> getValueMaxKey
-  TFF -> getValueMinKey
+  TagDouble -> getValueDouble
+  TagString -> getValueString
+  TagObject -> getValueObject
+  TagArray -> getValueArray
+  TagBinData -> getValueBinData
+  TagUndefined -> getValueUndefined
+  TagObjectId -> getValueObjectId
+  TagBool -> getValueBool
+  TagDate -> getValueDate
+  TagNull -> getValueNull
+  TagRegex -> getValueRegex
+  TagDbPointer -> getValueDbPointer
+  TagJavaScript -> getValueJavaScript
+  TagSymbol -> getValueSymbol
+  TagJavaScriptWithScope -> getValueJavaScriptWithScope
+  TagInt -> getValueInt
+  TagTimestamp -> getValueTimestamp
+  TagLong -> getValueLong
+  TagDecimal -> getValueDecimal
+  TagMaxKey -> getValueMaxKey
+  TagMinKey -> getValueMinKey
 
 putValue :: Put Value
 putValue value = case value of
@@ -813,24 +813,24 @@ int32ToInt = fromIntegral
 
 valueToTag :: Value -> Tag
 valueToTag value = case value of
-  ValueDouble{} -> T01
-  ValueString{} -> T02
-  ValueObject{} -> T03
-  ValueArray{} -> T04
-  ValueBinData{} -> T05
-  ValueUndefined{} -> T06
-  ValueObjectId{} -> T07
-  ValueBool{} -> T08
-  ValueDate{} -> T09
-  ValueNull{} -> T0A
-  ValueRegex{} -> T0B
-  ValueDbPointer{} -> T0C
-  ValueJavaScript{} -> T0D
-  ValueSymbol{} -> T0E
-  ValueJavaScriptWithScope{} -> T0F
-  ValueInt{} -> T10
-  ValueTimestamp{} -> T11
-  ValueLong{} -> T12
-  ValueDecimal{} -> T13
-  ValueMaxKey{} -> T7F
-  ValueMinKey{} -> TFF
+  ValueDouble{} -> TagDouble
+  ValueString{} -> TagString
+  ValueObject{} -> TagObject
+  ValueArray{} -> TagArray
+  ValueBinData{} -> TagBinData
+  ValueUndefined{} -> TagUndefined
+  ValueObjectId{} -> TagObjectId
+  ValueBool{} -> TagBool
+  ValueDate{} -> TagDate
+  ValueNull{} -> TagNull
+  ValueRegex{} -> TagRegex
+  ValueDbPointer{} -> TagDbPointer
+  ValueJavaScript{} -> TagJavaScript
+  ValueSymbol{} -> TagSymbol
+  ValueJavaScriptWithScope{} -> TagJavaScriptWithScope
+  ValueInt{} -> TagInt
+  ValueTimestamp{} -> TagTimestamp
+  ValueLong{} -> TagLong
+  ValueDecimal{} -> TagDecimal
+  ValueMaxKey{} -> TagMaxKey
+  ValueMinKey{} -> TagMinKey
