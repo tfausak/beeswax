@@ -565,7 +565,6 @@ putArray array = putObject
     )
   )
 
--- TODO: Is this right, or does it need to be big-endian?
 data ObjectId = ObjectId
   { objectIdA :: Word.Word32
   , objectIdB :: Word.Word64
@@ -573,14 +572,14 @@ data ObjectId = ObjectId
 
 getObjectId :: Get ObjectId
 getObjectId = do
-  a <- getWord32
-  b <- getWord64
+  a <- getWord32BE
+  b <- getWord64BE
   pure (ObjectId a b)
 
 putObjectId :: Put ObjectId
 putObjectId objectId = mappend
-  (Builder.word32LE (objectIdA objectId))
-  (Builder.word64LE (objectIdB objectId))
+  (Builder.word32BE (objectIdA objectId))
+  (Builder.word64BE (objectIdB objectId))
 
 data Binary
   = BinaryGeneric Bytes.ByteString
@@ -720,6 +719,12 @@ getInt64 = fmap word64ToInt64 getWord64
 getInt32 :: Get Int.Int32
 getInt32 = fmap word32ToInt32 getWord32
 
+getWord64BE :: Get Word.Word64
+getWord64BE = fmap bytesToWord64BE (getBytes 8)
+
+getWord32BE :: Get Word.Word32
+getWord32BE = fmap bytesToWord32BE (getBytes 4)
+
 getWord64 :: Get Word.Word64
 getWord64 = fmap bytesToWord64 (getBytes 8)
 
@@ -745,6 +750,24 @@ getBytes size = do
     (fail (mappend "size too large: " (show size)))
   put (Bytes.drop size bytes)
   pure (Bytes.take size bytes)
+
+bytesToWord64BE :: Bytes.ByteString -> Word.Word64
+bytesToWord64BE bytes =
+  Bits.shiftL (word8ToWord64 (Bytes.index bytes 0)) 56
+    Bits..|. Bits.shiftL (word8ToWord64 (Bytes.index bytes 1)) 48
+    Bits..|. Bits.shiftL (word8ToWord64 (Bytes.index bytes 2)) 40
+    Bits..|. Bits.shiftL (word8ToWord64 (Bytes.index bytes 3)) 32
+    Bits..|. Bits.shiftL (word8ToWord64 (Bytes.index bytes 4)) 24
+    Bits..|. Bits.shiftL (word8ToWord64 (Bytes.index bytes 5)) 16
+    Bits..|. Bits.shiftL (word8ToWord64 (Bytes.index bytes 6)) 8
+    Bits..|. word8ToWord64 (Bytes.index bytes 7)
+
+bytesToWord32BE :: Bytes.ByteString -> Word.Word32
+bytesToWord32BE bytes =
+  Bits.shiftL (word8ToWord32 (Bytes.index bytes 0)) 24
+    Bits..|. Bits.shiftL (word8ToWord32 (Bytes.index bytes 1)) 16
+    Bits..|. Bits.shiftL (word8ToWord32 (Bytes.index bytes 2)) 8
+    Bits..|. word8ToWord32 (Bytes.index bytes 3)
 
 bytesToWord64 :: Bytes.ByteString -> Word.Word64
 bytesToWord64 bytes =
