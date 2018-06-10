@@ -1,6 +1,5 @@
 module Beeswax
-  ( defaultMain
-  , version
+  ( version
   , decodeObject
   , encodeObject
   , Object(..)
@@ -39,18 +38,7 @@ import qualified Data.Text.Encoding as Text
 import qualified Data.Version as Version
 import qualified Data.Word as Word
 import qualified Paths_beeswax as This
-import qualified System.Environment as Environment
-import qualified System.IO as IO
 import qualified Unsafe.Coerce as Unsafe
-
-defaultMain :: IO ()
-defaultMain = do
-  IO.hPrint IO.stderr version
-  [input, output] <- Environment.getArgs
-  contents <- Bytes.readFile input
-  case decodeObject contents of
-    Left problem -> fail problem
-    Right object -> Bytes.writeFile output (encodeObject object)
 
 -- | The version number for this package.
 --
