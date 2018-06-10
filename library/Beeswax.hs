@@ -4,20 +4,26 @@ module Beeswax
   , decodeObject
   , encodeObject
   , Object(..)
+  , unwrapObject
   , Pairs(..)
+  , unwrapPairs
   , Pair(..)
   , Key(..)
+  , unwrapKey
   , Value(..)
   , Tag(..)
   , ObjectId(..)
   , Binary(..)
   , Array(..)
+  , unwrapArray
   , Regex(..)
   , DbPointer(..)
   , Quad(..)
+  , unwrapQuad
   , Code(..)
   , Uuid(..)
   , Md5(..)
+  , unwrapMd5
   )
 where
 
@@ -59,9 +65,11 @@ version = This.version
 decodeObject :: Bytes.ByteString -> Either String Object
 decodeObject x = fst (runGet (getSized (Bytes.length x) getObject) x)
 
-newtype Get a = Get
-  { runGet :: Bytes.ByteString -> (Either String a, Bytes.ByteString)
-  }
+newtype Get a =
+  Get (Bytes.ByteString -> (Either String a, Bytes.ByteString))
+
+runGet :: Get a -> Bytes.ByteString -> (Either String a, Bytes.ByteString)
+runGet (Get x) = x
 
 instance Functor Get where
   fmap = fmapGet
@@ -120,9 +128,12 @@ type Put a = a -> Builder.Builder
 runPut :: Put a -> a -> Bytes.ByteString
 runPut f x = LazyBytes.toStrict (Builder.toLazyByteString (f x))
 
-newtype Object = Object
-  { unwrapObject :: Pairs
-  } deriving (Eq, Show)
+newtype Object =
+  Object Pairs
+  deriving (Eq, Show)
+
+unwrapObject :: Object -> Pairs
+unwrapObject (Object x) = x
 
 getObject :: Get Object
 getObject = do
@@ -133,9 +144,12 @@ getObject = do
 putObject :: Put Object
 putObject object = putSized (+ 4) putPairs (unwrapObject object)
 
-newtype Pairs = Pairs
-  { unwrapPairs :: [Pair]
-  } deriving (Eq, Show)
+newtype Pairs =
+  Pairs [Pair]
+  deriving (Eq, Show)
+
+unwrapPairs :: Pairs -> [Pair]
+unwrapPairs (Pairs x) = x
 
 getPairs :: Get Pairs
 getPairs = do
@@ -156,27 +170,27 @@ putPairs pairs = mappend
   (Builder.word8 0x00)
 
 data Tag
-  = T01 -- double
-  | T02 -- string
-  | T03 -- object
-  | T04 -- array
-  | T05 -- bindata
-  | T06 -- undefined
-  | T07 -- objectid
-  | T08 -- bool
-  | T09 -- date
-  | T0A -- null
-  | T0B -- regex
-  | T0C -- dbpointer
-  | T0D -- javascript
-  | T0E -- symbol
-  | T0F -- javascriptwithscope
-  | T10 -- int
-  | T11 -- timestamp
-  | T12 -- long
-  | T13 -- decimal
-  | T7F -- maxkey
-  | TFF -- minkey
+  = T01 -- double
+  | T02 -- string
+  | T03 -- object
+  | T04 -- array
+  | T05 -- bindata
+  | T06 -- undefined
+  | T07 -- objectid
+  | T08 -- bool
+  | T09 -- date
+  | T0A -- null
+  | T0B -- regex
+  | T0C -- dbpointer
+  | T0D -- javascript
+  | T0E -- symbol
+  | T0F -- javascriptwithscope
+  | T10 -- int
+  | T11 -- timestamp
+  | T12 -- long
+  | T13 -- decimal
+  | T7F -- maxkey
+  | TFF -- minkey
   deriving (Eq, Show)
 
 getMaybeTag :: Get (Maybe Tag)
@@ -247,9 +261,12 @@ getPair tag = do
 putPair :: Put Pair
 putPair pair = mappend (putKey (pairKey pair)) (putValue (pairValue pair))
 
-newtype Key = Key
-  { unwrapKey :: Text.Text
-  } deriving (Eq, Show)
+newtype Key =
+  Key Text.Text
+  deriving (Eq, Show)
+
+unwrapKey :: Key -> Text.Text
+unwrapKey (Key x) = x
 
 getKey :: Get Key
 getKey = fmap Key getCString
@@ -481,9 +498,13 @@ putCode = putSized
   (+ 4)
   (\x -> mappend (putString (codeSource x)) (putObject (codeScope x)))
 
-newtype Quad = Quad
-  { unwrapQuad :: Bytes.ByteString -- TODO: Use better representation.
-  } deriving (Eq, Show)
+-- TODO: Use better representation.
+newtype Quad =
+  Quad Bytes.ByteString
+  deriving (Eq, Show)
+
+unwrapQuad :: Quad -> Bytes.ByteString
+unwrapQuad (Quad x) = x
 
 getQuad :: Get Quad
 getQuad = fmap Quad (getBytes 16)
@@ -521,9 +542,12 @@ putRegex :: Put Regex
 putRegex x =
   mappend (putCString (regexPattern x)) (putCString (regexOptions x))
 
-newtype Array = Array
-  { unwrapArray :: [Value]
-  } deriving (Eq, Show)
+newtype Array =
+  Array [Value]
+  deriving (Eq, Show)
+
+unwrapArray :: Array -> [Value]
+unwrapArray (Array x) = x
 
 getArray :: Get Array
 getArray =
@@ -541,7 +565,7 @@ putArray array = putObject
     )
   )
 
--- TODO: Is this right, or does it need to be big-endian?
+-- TODO: Is this right, or does it need to be big-endian?
 data ObjectId = ObjectId
   { objectIdA :: Word.Word32
   , objectIdB :: Word.Word64
@@ -632,9 +656,12 @@ putUuid uuid = mconcat
   , Builder.word32LE (uuidD uuid)
   ]
 
-newtype Md5 = Md5
-  { unwrapMd5 :: Bytes.ByteString
-  } deriving (Eq, Show)
+newtype Md5 =
+  Md5 Bytes.ByteString
+  deriving (Eq, Show)
+
+unwrapMd5 :: Md5 -> Bytes.ByteString
+unwrapMd5 (Md5 x) = x
 
 getMd5 :: Get Md5
 getMd5 = fmap Md5 (getBytes 16)
