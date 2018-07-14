@@ -39,7 +39,7 @@ tests:
   doctest:
     dependencies:
       beeswax: null
-      doctest: '>= 0.15.0 && < 0.16'
+      doctest: '>= 0.15.0 && < 0.17'
     ghc-options:
       - -rtsopts
       - -threaded
